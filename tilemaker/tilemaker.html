@@ -1,0 +1,232 @@
+<!doctype html>
+<!-- Original code by David Watts -->
+<!-- https://www.youtube.com/user/MrDavidJWatts -->
+<html>
+
+<head>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+	<script type="text/javascript" src="/js/jqColorPicker.min.js"></script>
+	<script type="text/javascript">
+		function getRGB(str) {
+			var match = str.match(/rgba?\((\d{1,3}), ?(\d{1,3}), ?(\d{1,3})\)?(?:, ?(\d(?:\.\d?))\))?/);
+			return "[" + match[1] + "," + match[2] + "," + match[3] + "]";
+		}
+	</script>
+	<style type="text/css">
+		/* DivTable.com */
+
+		.divTable {
+			display: table;
+
+		}
+
+		.divTableRow {
+			display: table-row;
+		}
+
+		.divTableHeading {
+			background-color: #EEE;
+			display: table-header-group;
+		}
+
+		.divTableCell,
+		.divTableHead {
+			border: 1px solid #999999;
+			display: table-cell;
+			height: 40px;
+			width: 40px;
+
+		}
+
+		.divTableHeading {
+			background-color: #EEE;
+			display: table-header-group;
+			font-weight: bold;
+		}
+
+		.divTableFoot {
+			background-color: #EEE;
+			display: table-footer-group;
+			font-weight: bold;
+		}
+
+		.divTableBody {
+			display: table-row-group;
+		}
+
+		.unselectable {
+			-moz-user-select: -moz-none;
+			-khtml-user-select: none;
+			-webkit-user-select: none;
+			-o-user-select: none;
+			user-select: none;
+		}
+
+		#createMap {
+			margin-bottom: 20px;
+		}
+	</style>
+	<meta charset="utf-8">
+	<title>Thumbnail Tile Maker</title>
+</head>
+
+<body>
+<center>
+	<input class="color no-alpha" value="rgb(129, 255, 249)" style="background-color: rgb(129, 255, 249); color: rgb(221, 221, 221);">
+    <input id="xLocation" type="text" placeholder="X Offset(0 - 830)" />
+    <input id="yLocation" type="text" placeholder="Y Offset(0 - 555)" />
+	<button id="createMap">Show Code and Copy to Clipboard</button>
+	<button id="clearButton">Clear</button>
+	<div class="divTable" style="border: 1px solid #000;">
+		<div class="divTableBody" id="divTableBody">
+		</div>
+	</div>
+    </center>
+    
+	<script type="text/javascript">
+		function createGrid(columns, rows) {
+			for (var rowIndex = 0; rowIndex < rows; rowIndex++) {
+				var row = $("<div class='divTableRow' data-ycord='" + rowIndex + "'></div>");
+				row.appendTo('#divTableBody');
+				for (var columnIndex = 0; columnIndex < columns; columnIndex++) {
+					var cellNumber = rowIndex * columns + columnIndex;
+					$("<div class='divTableCell unselectable' id='cell"+ cellNumber +"' style='background-color: rgb(255, 255, 255)' data-xcord='" + columnIndex + "' >&nbsp;</div>").appendTo(row);
+				}
+			}
+		}
+
+		var displayWidth = 8;
+		var displayHeight = 8;
+
+		$(document).ready(function() {
+
+			document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+        }, false);
+
+			createGrid(displayWidth, displayHeight);
+			// $(".divTableCell").click(function() {
+			// 	handleCellChange(this, $(".color").val(););
+			// });
+			//
+			// $(".divTableCell").on("mousedown", function(e) {
+			// 	console.log(e.buttons);
+			// 	"rgb(0, 0, 0)";
+			// });
+
+			$(".divTableCell").on("mousedown mouseenter", function(e) {
+				if (e.buttons == 1) {
+                    if (this != $(".color").val()){
+                        handleCellChange(this, $(".color").val());
+                    } 
+                    if (this == $(".color").val()){
+                        handleCellChange(this, "rgb(255, 255, 255)");
+                    }
+				} else if (e.buttons == 2){
+					handleCellChange(this, "rgb(255, 255, 255)");
+				}
+			});
+
+
+		});
+
+		function handleCellChange(element, colourVal) {
+			$(element).css('background-color', colourVal);
+			//sendWebsocketMessage(element, colourVal);
+		}
+
+		function sendWebsocketMessage(element, colourVal) {
+			var xCord = $(element).data('xcord');
+			var yCord = $(element).parent().data('ycord');
+			console.log('xCord: ' + xCord);
+			console.log('yCord: ' + yCord);
+
+			var convertedColour = convertColourToRGB565(colourVal);
+			console.log('convertedColour: ' + convertedColour);
+
+			var message = '0:' 
+			message += xCord + ',';
+			message += yCord + ',';
+			message += '0x' + convertedColour;
+
+			//exampleSocket.send(message);
+		}
+
+		function convertColourToRGB565(colour) {
+			var match = colour.match(/rgba?\((\d{1,3}), ?(\d{1,3}), ?(\d{1,3})\)?(?:, ?(\d(?:\.\d?))\))?/);
+			var colourInt = ((parseInt(match[1]) & 0xF8) << 8) | ((parseInt(match[2]) & 0xFC) << 3) | (parseInt(match[3]) >> 3);
+			var convertedColour = colourInt.toString(16);
+			for (var colourPadIndex = 0; (convertedColour.length + colourPadIndex) < 4; colourPadIndex++){
+				convertedColour = '0' + convertedColour;
+			}
+			return convertedColour.toUpperCase();
+		}
+
+		function copyToClipboard(text){
+			var dummy = document.createElement("input");
+			document.body.appendChild(dummy);
+			dummy.setAttribute('value', text);
+			dummy.select();
+			document.execCommand("copy");
+			document.body.removeChild(dummy);
+		}
+
+		//var exampleSocket = new WebSocket("ws://192.168.1.18:81");
+
+		$("#clearButton").click(function() {
+			//exampleSocket.send("CLEAR");
+			$(".divTableCell").css('background-color', "rgb(255, 255, 255)");
+		});
+
+		$("#createMap").click(function() {
+            
+            var xLoc = parseInt(document.getElementById("xLocation").value);
+            var yLoc = parseInt(document.getElementById("yLocation").value);
+            if (isNaN(xLoc)){
+                //xLoc = 640;
+                xLoc = Math.floor((Math.random()*830)+1);
+            }   
+            if (isNaN(yLoc)){
+                //yLoc = 320;
+                yLoc = Math.floor((Math.random()*555)+1);
+            }  
+			var textOutput = "$$";
+            var cellnum = 0;
+			for (i = 0; i < displayHeight; i++) {
+                for (j = 0; j < displayWidth; j++) {
+                    
+                    if(i == 0){
+                        cellnum = j;
+                    }
+                    else{
+                        cellnum = (i * displayWidth) + j;
+                    }
+                    cval = $("#cell" + cellnum).css('background-color');
+       
+                    if (cval != "rgb(255, 255, 255)"){
+                        textOutput += ("(");
+                        textOutput += (j+xLoc)
+                        textOutput += (" ,");
+                        textOutput += (i+yLoc)
+                        textOutput += (" ,");
+                        text = "#cell" + cellnum;
+                        cval = $("#cell" + cellnum).css('background-color');                      
+                        textOutput += ' ' + cval.substring(4);
+                    }
+                    
+                }
+            }	
+            textOutput += ' - Made on SeanHodgins Tile Maker';
+			copyToClipboard(textOutput);			
+            $(".output").html(textOutput);
+		});
+
+		$(".color").colorPicker({
+			forceAlpha: false
+
+		});
+	</script>
+	<p class="output"></p>
+</body>
+
+</html>
